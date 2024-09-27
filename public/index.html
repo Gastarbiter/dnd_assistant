@@ -1,0 +1,111 @@
+<!-- public/index.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>D&D Assistant</title>
+  <style>
+    body { font-family: Arial, sans-serif; }
+    #chatbox { width: 80%; height: 400px; border: 1px solid #ccc; overflow-y: scroll; margin: 20px auto; padding: 10px; }
+    .message { margin-bottom: 10px; }
+    .user { color: blue; }
+    .assistant { color: green; }
+    #user-input { width: 80%; margin: 0 auto; display: flex; }
+    #user-input input { flex: 1; padding: 10px; }
+    #user-input button { padding: 10px; }
+    /* Style for the reset button */
+    #reset-button { width: 80%; margin: 10px auto; display: flex; justify-content: center; }
+    #reset-button button { padding: 10px; }
+  </style>
+</head>
+<body>
+  <h1 style="text-align: center;">Dungeons & Dragons Assistant</h1>
+  <div id="chatbox"></div>
+
+  <!-- Reset Conversation Button -->
+  <div id="reset-button">
+    <button onclick="resetConversation()">Reset Conversation</button>
+  </div>
+
+  <div id="user-input">
+    <input type="text" id="message" placeholder="Type your message here..." />
+    <button onclick="sendMessage()">Send</button>
+  </div>
+
+  <script>
+    // Array to store the conversation history
+    let conversationHistory = [];
+
+    function renderConversation() {
+      const chatbox = document.getElementById('chatbox');
+      chatbox.innerHTML = ''; // Clear the chatbox
+
+      // Render each message in the conversation history
+      conversationHistory.forEach(msg => {
+        const messageDiv = document.createElement('div');
+        messageDiv.className = 'message ' + msg.role;
+        messageDiv.textContent = `${msg.displayName}: ${msg.content}`;
+        chatbox.appendChild(messageDiv);
+      });
+
+      // Scroll to bottom
+      chatbox.scrollTop = chatbox.scrollHeight;
+    }
+
+    async function sendMessage() {
+      const messageInput = document.getElementById('message');
+      const userMessage = messageInput.value.trim();
+      if (!userMessage) return;
+
+      // Add user's message to conversation history
+      conversationHistory.push({ role: 'user', displayName: 'You', content: userMessage });
+
+      // Clear input
+      messageInput.value = '';
+
+      // Display the updated conversation
+      renderConversation();
+
+      // Send message to server
+      try {
+        const response = await fetch('/chat', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ message: userMessage }),
+        });
+        const data = await response.json();
+
+        // Add assistant's reply to conversation history
+        conversationHistory.push({ role: 'assistant', displayName: 'Wizard', content: data.reply });
+
+        // Display the updated conversation
+        renderConversation();
+      } catch (error) {
+        console.error('Error:', error);
+      }
+    }
+
+    // Function to reset the conversation
+    async function resetConversation() {
+      try {
+        const response = await fetch('/reset', {
+          method: 'POST',
+        });
+        const data = await response.json();
+
+        // Clear the conversation history
+        conversationHistory = [];
+
+        // Display the updated conversation
+        renderConversation();
+
+        alert(data.message);
+      } catch (error) {
+        console.error('Error:', error);
+      }
+    }
+  </script>
+</body>
+</html>
